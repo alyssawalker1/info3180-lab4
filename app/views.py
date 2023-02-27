@@ -1,10 +1,13 @@
 import os
 from app import app, db, login_manager
-from flask import render_template, request, redirect, url_for, flash, session, abort
+from flask import render_template, request, redirect, url_for, flash, session, abort, send_from_directory
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.utils import secure_filename
 from app.models import UserProfile
 from app.forms import LoginForm
+from app.forms import UploadForm
+from werkzeug.security import check_password_hash
+
 
 
 ###
@@ -24,40 +27,74 @@ def about():
 
 
 @app.route('/upload', methods=['POST', 'GET'])
+@login_required
 def upload():
     # Instantiate your form class
-
+    uform = UploadForm()
     # Validate file upload on submit
-    if form.validate_on_submit():
-        # Get file data and save to your uploads folder
+    if request.method == 'POST': 
+        if uform.validate_on_submit():
+                # Get file data and save to your uploads folder
+                photo = uform.picture.data
+                
+                filename = secure_filename(photo.filename)
+                photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-        flash('File Saved', 'success')
-        return redirect(url_for('home')) # Update this to redirect the user to a route that displays all uploaded image files
-
-    return render_template('upload.html')
+                flash('File Saved', 'success')
+                return redirect(url_for('files')) # Update this to redirect the user to a route that displays all uploaded image files
+    return render_template('upload.html', form = uform)
 
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
     form = LoginForm()
 
-    # change this to actually validate the entire form submission
-    # and not just one field
-    if form.username.data:
-        # Get the username and password values from the form.
+    if request.method == 'POST':
+        # change this to actually validate the entire form submission
+        # and not just one field
+        if form.validate_on_submit():
+            # Get the username and password values from the form.
+            username = form.username.data
+            password = form.password.data
+            
+            # Using your model, query database for a user based on the username
+            # and password submitted. Remember you need to compare the password hash.
+            # You will need to import the appropriate function to do so.
+            # Then store the result of that query to a `user` variable so it can be
+            # passed to the login_user() method below.
 
-        # Using your model, query database for a user based on the username
-        # and password submitted. Remember you need to compare the password hash.
-        # You will need to import the appropriate function to do so.
-        # Then store the result of that query to a `user` variable so it can be
-        # passed to the login_user() method below.
-
-        # Gets user id, load into session
-        login_user(user)
-
-        # Remember to flash a message to the user
-        return redirect(url_for("home"))  # The user should be redirected to the upload form instead
+            user = db.session.execute(db.select(UserProfile).filter_by(username = username)).scalar()
+            
+            if user and check_password_hash(user.password , password):
+                # Gets user id, load into session
+                login_user(user)
+                # Remember to flash a message to the user
+                flash('Successfully Logged in!', 'success')
+                next_page = request.args.get('next')
+                return redirect(next_page or url_for("upload"))  # The user should be redirected to the upload form instead
+            flash('Login Failed')
     return render_template("login.html", form=form)
+
+def get_uploaded_images():
+    uploadslst = []
+    rootdir = os.getcwd()
+    for subdir, dirs, files in os.walk(rootdir + '/uploads'):
+        for f in files:
+            dirs = os.path.join(subdir, f)
+            if dirs.split('.')[-1] in ('jpg', 'png'):
+                uploadslst.append(f)
+    return uploadslst
+
+@app.route('/uploads/<filename>')
+def get_image(filename):
+    return send_from_directory(os.path.join(os.getcwd(), app.config["UPLOAD_FOLDER"]), filename)
+
+@app.route('/files')
+@login_required
+def files():
+    pics_uploaded = get_uploaded_images()
+    return render_template("files.html", pics_uploaded = pics_uploaded)
+
 
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session
