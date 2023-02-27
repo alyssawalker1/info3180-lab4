@@ -19,6 +19,22 @@ body {
     border-top-right-radius: 0;
 }
 
-img{
-    max-width: 100px;
+
+.grid{
+    display: grid; 
+    list-style-type: none;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 1rem;
+    padding: 1rem;
+    }
+
+.grid li img{
+    width: 300px;
+    height: 250px;
+}
+
+ul{
+    display: flex;
+    flex-wrap: wrap;
+
 }

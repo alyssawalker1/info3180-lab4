@@ -1,13 +1,16 @@
 {% extends "base.html" %}
 
 {% block main %}
-
-
-    {% for pic in pics_uploaded%}
-    <li>
-        <img src ="{{url_for("get_image", filename=pic)}}" />
-    </li>
-    {% endfor %}
+        <ul>
+            {% for pic in pics_uploaded%}
+             <div class= "grid">
+                <li>
+                    <img src ="{{url_for("get_image", filename=pic)}}" />
+                </li>
+            </div>
+            {% endfor %}
+        </ul>
+    
 
 {% endblock %}
 

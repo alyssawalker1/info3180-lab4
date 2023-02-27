@@ -95,6 +95,12 @@ def files():
     pics_uploaded = get_uploaded_images()
     return render_template("files.html", pics_uploaded = pics_uploaded)
 
+@app.route('/logout')
+def logout():
+    logout_user()
+    flash("You've been successfully logged out!")
+    return redirect(url_for("home"))
+
 
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session
